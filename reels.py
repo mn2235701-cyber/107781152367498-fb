@@ -8,7 +8,7 @@ MAX_DURATION = 60
 # =========================
 # IMPORTS
 # =========================
-import requests, random, os, shutil, json, time, hashlib, subprocess
+import requests, random, os, json, time, hashlib, subprocess
 
 # =========================
 # ENV
@@ -240,37 +240,6 @@ def add_music():
     return True, music_name
 
 # =========================
-# SAVE REEL
-# =========================
-def save_reel():
-
-    os.makedirs("reels", exist_ok=True)
-
-    hashes = load_json(HASH_FILE, [])
-
-    h = get_hash("final.mp4")
-
-    if h in hashes:
-        print("⚠️ Duplicate reel skipped")
-        return None
-
-    hashes.append(h)
-
-    save_json(HASH_FILE, hashes[-200:])
-
-    i = 1
-
-    while True:
-
-        name = f"reels/reel_{i}.mp4"
-
-        if not os.path.exists(name):
-            shutil.copy("final.mp4", name)
-            return name
-
-        i += 1
-
-# =========================
 # FACEBOOK UPLOAD
 # =========================
 def upload(video, title, desc):
@@ -345,14 +314,21 @@ def main():
     if not ok:
         raise Exception("❌ No music files found")
 
-    reel = save_reel()
+    # Duplicate check without reels folder
+    hashes = load_json(HASH_FILE, [])
 
-    if not reel:
+    h = get_hash("final.mp4")
+
+    if h in hashes:
         raise Exception("❌ Duplicate reel detected")
+
+    hashes.append(h)
+
+    save_json(HASH_FILE, hashes[-200:])
 
     title, desc = get_caption()
 
-    uploaded = upload(reel, title, desc)
+    uploaded = upload("final.mp4", title, desc)
 
     if not uploaded:
         raise Exception("❌ Upload failed")
@@ -362,13 +338,12 @@ def main():
         "video": video["id"],
         "keyword": video["query"],
         "music": music,
-        "file": reel
+        "file": "final.mp4"
     })
 
     cleanup()
 
     print("🎬 DONE")
-
 # =========================
 # RUN
 # =========================
